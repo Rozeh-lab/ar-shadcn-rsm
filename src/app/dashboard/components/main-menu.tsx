@@ -1,11 +1,25 @@
+"use client"
+
 import React from "react";
 import MenuTitle from "./menu-title";
 import MenuItem from "./menu-item";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import { MoonIcon, SunIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import Cookies from 'js-cookie'
  
 const MainMenu: React.FC = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    const savedTheme = Cookies.get('dark-mode')
+    if (savedTheme === 'true') {
+      setIsDarkMode(true)
+      document.body.classList.add('dark')
+    }
+  }, [])
+
   return (
     <nav className="bg-muted overflow-auto p-4 flex flex-col h-full">
       <header className="border-b dark:border-b-black border-b-zinc-300  pb-4">
@@ -30,7 +44,28 @@ const MainMenu: React.FC = () => {
         <Link href="/" className="hover:underline">
           로그아웃
         </Link>
-        <ThemeToggle />
+        <div className="hidden md:flex items-center gap-2 border px-2 py-1 rounded-full dark:border-gray-600">
+          <button
+            onClick={() => {
+              setIsDarkMode(false)
+              document.body.classList.remove('dark')
+              Cookies.set('dark-mode', 'false', { expires: 365 })
+            }}
+            className={`p-1 rounded-full ${!isDarkMode ? 'bg-muted' : ''}`}
+          >
+            <SunIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => {
+              setIsDarkMode(true)
+              document.body.classList.add('dark')
+              Cookies.set('dark-mode', 'true', { expires: 365 })
+            }}
+            className={`p-1 rounded-full ${isDarkMode ? 'bg-muted' : ''}`}
+          >
+            <MoonIcon className="w-4 h-4" />
+          </button>
+        </div>
       </footer>
     </nav>
   );

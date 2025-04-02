@@ -33,12 +33,7 @@ export default async function RootLayout({
   
   return (
     <html lang="ko" >
-      <body
-        className={cn(
-          `antialiased, font-pretendard 
-          ${isDarkMode ? "dark" : ""}
-        `)}
-      >
+      <body className="antialiased font-pretendard">
         {children}
       </body>
     </html>
