@@ -1,5 +1,4 @@
 import React from "react";
-import MainMenu from "./components/main-menu";
 import DashboardHeader from "@/components/dashboard/header";
 
 interface DashboardLayoutProps {
