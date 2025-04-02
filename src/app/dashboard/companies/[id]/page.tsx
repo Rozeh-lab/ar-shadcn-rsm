@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Company } from '@/types/company';
 
 interface Props {
   params: { id: string };
@@ -41,8 +40,8 @@ export default async function CompanyDetailPage({ params }: Props) {
       </div>
 
       <section className="bg-white border rounded p-6 shadow-sm">
-        <p className="text-sm text-gray-500">키워드: <span className="font-medium">{company.keyword}</span></p>
-        <p className="text-sm mt-1">진행 기간: {company?.periodStart.toDate().toLocaleDateString()} ~ {company.periodEnd.toDate().toLocaleDateString()}</p>
+        <p className="text-sm text-gray-500">키워드: <span className="font-medium">{company?.keyword}</span></p>
+        <p className="text-sm mt-1">진행 기간: {company?.periodStart.toDate().toLocaleDateString()} ~ {company?.periodEnd.toDate().toLocaleDateString()}</p>
         <p className="text-sm mt-1">
           플레이스 주소: <a href={company?.placeUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">바로가기</a>
         </p>
@@ -53,7 +52,7 @@ export default async function CompanyDetailPage({ params }: Props) {
         {company?.blog ? (
           <div className="bg-white border rounded p-4">
             <h2 className="text-lg font-semibold mb-2">블로그 기자단</h2>
-            <p className="text-sm">타겟: {company.blog.target} / 진행: {company.blog.reported}</p>
+            <p className="text-sm">타겟: {company?.blog.target} / 진행: {company?.blog.reported}</p>
           </div>
         ) : (
           <div className="bg-white border rounded p-4 text-gray-400">
@@ -61,10 +60,10 @@ export default async function CompanyDetailPage({ params }: Props) {
           </div>
         )}
 
-        {company.experience ? (
+        {company?.experience ? (
           <div className="bg-white border rounded p-4">
             <h2 className="text-lg font-semibold mb-2">체험단</h2>
-            <p className="text-sm">타겟: {company.experience.target} / 진행: {company.experience.reported}</p>
+            <p className="text-sm">타겟: {company?.experience.target} / 진행: {company?.experience.reported}</p>
           </div>
         ) : (
           <div className="bg-white border rounded p-4 text-gray-400">
