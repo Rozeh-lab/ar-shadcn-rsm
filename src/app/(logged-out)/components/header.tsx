@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 const HomeHeader = () => {
     return(
         <header className="sticky top-0 z-50 bg-white border-b border-gray-200 dark:bg-black dark:border-gray-800 px-12 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Image src="/rsm-logo.svg" alt="RSM Logo" width={40} height={40} />
+        <Link href={'/'} className="flex items-center gap-2">
+          <Image className="dark:invert" src="/rsm-logo.svg" alt="RSM Logo" width={40} height={40}  />
           <span className="text-2xl font-bold text-primary">RSM</span>
-        </div>
+        </Link>
         <nav className="hidden md:flex gap-8 text-base font-medium">
           <Link href="#solution" className="hover:underline">솔루션</Link>
           <Link href="#process" className="hover:underline">진행과정</Link>

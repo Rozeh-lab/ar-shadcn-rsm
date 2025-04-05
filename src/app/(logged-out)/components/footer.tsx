@@ -22,7 +22,7 @@ const HomeFooter = () => {
     return(
       <footer className="bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 py-8 px-12 text-center text-sm text-muted-foreground">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 w-full">
-        <div>© 2025 더 리치 솔루션. All rights reserved.</div>
+        <div>© 2025 The Rich Group. All rights reserved.</div>
         <div className="hidden md:flex items-center gap-2 border px-2 py-1 rounded-full dark:border-gray-600">
           <button
             onClick={() => {

@@ -1,130 +1,171 @@
-// app/dashboard/page.tsx
-'use client';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { collection, getDocs, setDoc, doc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+'use client'
 
-interface Company {
-  id: string;
-  name: string;
-  placeUrl: string;
-  keyword: string;
-  periodStart: Timestamp;
-  periodEnd: Timestamp;
-  rank?: {
-    current: number;
-    diff: number;
-  };
-  blog?: {
-    target: number;
-    reported: number;
-  };
-  experience?: {
-    target: number;
-    reported: number;
-  };
-  agency?: string;
-  status?: string;
-}
+import { useEffect, useState } from "react"
+import { collection, getDocs, setDoc, doc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { CompanyData } from "@/types/company"
+import RichViewCard from "@/components/company/RichViewCard"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
+import { Upload } from "lucide-react"
+import * as XLSX from "xlsx"
 
 export default function DashboardPage() {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [search, setSearch] = useState('');
+  const [companies, setCompanies] = useState<CompanyData[]>([])
+  const [filtered, setFiltered] = useState<CompanyData[]>([])
+  const [selected, setSelected] = useState<CompanyData | null>(null)
+  const [search, setSearch] = useState("")
+  const [form, setForm] = useState({
+    name: "",
+    placeUrl: "",
+    agencyName: "",
+    group: ""
+  })
+  const [excelData, setExcelData] = useState<any[]>([])
 
   useEffect(() => {
-    const fetchData = async () => {
-      const snapshot = await getDocs(collection(db, 'companies'));
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Company[];
-      setCompanies(data);
-    };
-    fetchData();
-  }, []);
+    const fetchCompanies = async () => {
+      const snapshot = await getDocs(collection(db, "companies"))
+      const list = snapshot.docs.map(doc => doc.data() as CompanyData)
+      setCompanies(list)
+      setFiltered(list)
+    }
+    fetchCompanies()
+  }, [])
 
-  const filtered = companies.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const parsePlaceUrl = (url: string) => {
+    const match = url.match(/\/([a-zA-Z]+)\/(\d+)\//)
+    if (!match) return null
+    return {
+      category: match[1],
+      companyId: match[2]
+    }
+  }
 
-  const handleAdd = async () => {
-    const id = Date.now().toString();
-    const newCompany: Omit<Company, 'id'> = {
-      name: '새 업체',
-      placeUrl: 'https://example.com',
-      keyword: '기본키워드',
-      periodStart: Timestamp.fromDate(new Date()),
-      periodEnd: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
-      blog: { target: 0, reported: 0 },
-      experience: { target: 0, reported: 0 },
-      agency: 'default-agency',
-      status: 'pending',
-    };
-    await setDoc(doc(db, 'companies', id), newCompany);
-    setCompanies(prev => [...prev, { id, ...newCompany }]);
-  };
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-  const today = new Date().toLocaleDateString();
+    const data = await file.arrayBuffer()
+    const workbook = XLSX.read(data)
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    const json = XLSX.utils.sheet_to_json(sheet)
+    setExcelData(json)
+  }
+
+  const handleExcelSubmit = async () => {
+    const newList: CompanyData[] = []
+    for (const item of excelData) {
+      const { name, placeUrl, agencyName, group } = item as any
+      const parsed = parsePlaceUrl(placeUrl)
+      if (!parsed) continue
+
+      const newCompany = {
+        name,
+        placeUrl,
+        agencyName,
+        group,
+        companyId: parsed.companyId,
+        category: parsed.category
+      }
+      await setDoc(doc(db, "companies", parsed.companyId), newCompany)
+      newList.push(newCompany as CompanyData)
+    }
+    setCompanies(prev => [...prev, ...newList])
+    setFiltered(prev => [...prev, ...newList])
+    alert("엑셀 데이터 등록 완료")
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleManualSubmit = async () => {
+    const parsed = parsePlaceUrl(form.placeUrl)
+    if (!parsed) return alert("유효한 네이버 플레이스 URL을 입력해주세요.")
+
+    const newCompany = {
+      name: form.name,
+      placeUrl: form.placeUrl,
+      agencyName: form.agencyName,
+      group: form.group,
+      companyId: parsed.companyId,
+      category: parsed.category
+    }
+
+    await setDoc(doc(db, "companies", parsed.companyId), newCompany)
+    setCompanies(prev => [...prev, newCompany as CompanyData])
+    setFiltered(prev => [...prev, newCompany as CompanyData])
+    setForm({ name: "", placeUrl: "", agencyName: "", group: "" })
+  }
 
   return (
-    <main className="max-w-screen-lg mx-auto px-6 py-10 space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">마케팅 관리 대시보드</h1>
-        <Button onClick={handleAdd}>+ 업체 추가</Button>
-      </div>
+    <div className="max-w-4xl mx-auto py-6">
+      {!selected ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">📋 업체 목록</h2>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <Upload className="w-4 h-4 mr-2" /> 업체 등록
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>업체 등록</DialogTitle>
+                </DialogHeader>
 
-      <Input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="업체명 검색"
-        className="w-full md:w-80"
-      />
+                <div className="space-y-2">
+                  <Input name="name" placeholder="업체명" value={form.name} onChange={handleInputChange} />
+                  <Input name="placeUrl" placeholder="네이버 플레이스 URL" value={form.placeUrl} onChange={handleInputChange} />
+                  <Input name="agencyName" placeholder="에이전시명" value={form.agencyName} onChange={handleInputChange} />
+                  <Input name="group" placeholder="그룹명 (선택)" value={form.group} onChange={handleInputChange} />
+                  <Button onClick={handleManualSubmit} className="w-full">직접 등록</Button>
 
-      <div className="space-y-4">
-        {filtered.length === 0 && (
-          <p className="text-gray-400 text-sm">검색 결과가 없습니다.</p>
-        )}
+                  <hr className="my-4" />
 
-        {filtered.map((company) => {
-          const isIncomplete =
-            company.blog?.target &&
-            company.blog?.reported !== undefined &&
-            company.blog.reported < company.blog.target;
-
-          return (
-            <div
-              key={company.id}
-              className={`border rounded p-4 shadow-sm bg-white ${
-                isIncomplete ? 'border-red-300' : ''
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <Link
-                    href={`dashboard/companies/${company.id}`}
-                    className="text-lg font-semibold hover:underline text-blue-600"
-                  >
-                    {company.name}
-                  </Link>
-                  <p className="text-sm text-gray-500">{company.placeUrl}</p>
+                  <p className="text-sm font-medium">엑셀 파일로 일괄 등록</p>
+                  <Input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    onChange={handleExcelUpload}
+                  />
+                  <Button onClick={handleExcelSubmit} className="w-full">엑셀 데이터 등록 실행</Button>
                 </div>
-                <span className="text-xs text-gray-400">{company.status}</span>
-              </div>
-              <div className="mt-2 text-sm text-gray-700">
-                키워드: {company.keyword} / 진행 기간:{' '}
-                {company.periodStart?.toDate().toLocaleDateString()} ~{' '}
-                {company.periodEnd?.toDate().toLocaleDateString()}
-              </div>
-              <div className="text-sm text-gray-700 mt-1">
-                블로그: 타겟 {company.blog?.target} / 진행 {company.blog?.reported}, 체험단: 타겟 {company.experience?.target} / 진행 {company.experience?.reported}
-              </div>
-              {isIncomplete && (
-                <div className="text-xs text-red-500 mt-1">📌 오늘 기준 미완료 항목 존재</div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </main>
-  );
+              </DialogContent>
+            </Dialog>
+          </div>
+          <Input
+            type="text"
+            placeholder="업체명, 에이전시명 또는 그룹명 검색"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {filtered.map((c) => (
+            <Card
+              key={c.companyId}
+              className="p-3 cursor-pointer hover:bg-muted"
+              onClick={() => setSelected(c)}
+            >
+              <p className="font-medium">{c.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {c.placeUrl} {c.agencyName ? `| ${c.agencyName}` : ""} {c.group ? `| 그룹: ${c.group}` : ""}
+              </p>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <RichViewCard company={selected as CompanyData} />
+      )}
+    </div>
+  )
 }
